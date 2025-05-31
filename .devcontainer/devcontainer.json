@@ -1,0 +1,27 @@
+// コンテナ上のVSCodeの設定
+{
+  // VSCode上で表示される名前
+  "name": "My Python Dev Container",
+  // docker-composeファイルのパス
+  "dockerComposeFile": "../docker-compose.yml",
+  // docker-composeのサービス
+  "service": "workspace",
+  // VSCodeのルートディレクトリ
+  "workspaceFolder": "/workspace",
+  // コンテナからホストに転送するポートリスト
+  // "forwardPorts": [3000],
+  // VSCodeの設定等
+  "customizations": {
+    "vscode": {
+      // 拡張機能リスト(拡張機能IDを指定) コンテナ用の拡張がビルド時にインストールされるように設定
+      "extensions": ["ms-python.python", "MS-CEINTL.vscode-language-pack-ja"]
+    }
+  }
+}
+
+// memo
+// dockerFile: 単一のDockerfileを使用してコンテナを作成する場合に使用
+// build: Dockerfileのパス、ビルドに必要な引数など詳細に設定してコンテナを作成する場合に使用
+// runArgs: コンテナ起動の際に引数を指定する場合に使用
+// postCreateCommand: コンテナが初めて作成され
+// appPort: コンテナからホストに転送するポートリストで単一ポートのみを指定する場合に使用
