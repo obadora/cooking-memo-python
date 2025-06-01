@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Poetry
+.poetry/
+poetry.lock
+
+# VSCode
+.vscode/
+
+# Docker
+*.log
+docker-entrypoint-initdb.d/*
+!docker-entrypoint-initdb.d/.gitkeep
+mysql_data/
+*.pid
+
+# OS
+.DS_Store
+Thumbs.db
+
+# その他
+*.sqlite3
+*.db
