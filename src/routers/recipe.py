@@ -108,4 +108,4 @@ async def scrape_and_save_recipe(
     """URLからレシピをスクレイピングして保存"""    
     # スクレイピング実行
     scraped_data = scrape_recipe(source_url)
-    return await crud_recipe.create_from_scraped_data(db, scraped_data)
+    return await crud_recipe.create_from_scraped_data(db, scraped_data=scraped_data)
