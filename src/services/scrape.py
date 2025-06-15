@@ -1,20 +1,85 @@
-import requests
+import requests, re
 from bs4 import BeautifulSoup
 from src.cruds import recipe as crud_recipe
 from sqlalchemy.ext.asyncio import AsyncSession
 
-def scrape_recipe(url: str):
+def scrape_recipe(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
 
-    title = soup.find('h1').text  # タイトルを取得
-    ingredients = [ingredient.text for ingredient in soup.find_all(class_='ingredient')]  # 材料リスト
-    steps = [step.text.strip() for step in soup.find_all("p", {"class": "step-desc"})]  # 手順
-    # 最初の画像を取得
-    video_tag = soup.find("video")  # 最初の<video>タグを取得
+    # タイトルを取得
+    title = soup.find('h1').text.strip() if soup.find('h1') else "タイトル不明"
+    
+    # 材料リストを取得（シンプル版）
+    ingredients = []
+    
+    # 材料リスト全体を取得
+    ingredient_list = soup.find('ul', class_='ingredient-list')
+    if ingredient_list:
+        list_items = ingredient_list.find_all('li')
+        
+        for item in list_items:
+            # グループヘッダーは無視
+            if 'ingredient-group__header' in item.get('class', []):
+                continue
+            
+            # 通常の材料アイテム
+            if 'ingredient' in item.get('class', []):
+                name_elem = item.find(class_='ingredient-name')
+                serving_elem = item.find(class_='ingredient-serving')
+                
+                if name_elem:
+                    name = name_elem.text.strip()
+                    quantity = serving_elem.text.strip() if serving_elem else ''
+                    
+                    ingredient_data = {
+                        'name': name,
+                        'quantity': quantity
+                    }
+                    
+                    ingredients.append(ingredient_data)
+    
+    # 手順を取得（番号付きで）
+    steps = [] # List<dict>
+    step_elements = soup.find_all("p", {"class": "step-desc"})
+    
+    for i, step in enumerate(step_elements, 1):
+        step_text = step.text.strip()
+        
+        # 既に番号が含まれているかチェック
+        step_number_match = re.match(r'^(\d+)\.?\s*(.+)', step_text)
+        if step_number_match:
+            step_number = int(step_number_match.group(1))
+            instruction = step_number_match.group(2)
+        else:
+            # 番号がない場合は自動採番
+            step_number = i
+            instruction = step_text
+        
+        steps.append({
+            'step_number': step_number,
+            'instruction': instruction
+        })
+    
+    # 画像を取得
+    photo_url = None
+    video_tag = soup.find("video")
     if video_tag:
-        poster_url = video_tag.get("poster")  # poster属性から画像URLを取得
-    return {"title": title, "ingredients": ingredients, "steps": steps, "poster_url": poster_url}
+        photo_url = video_tag.get("poster")
+    
+    # videoがない場合は最初のimg要素を探す
+    if not photo_url:
+        img_tag = soup.find("img")
+        if img_tag:
+            photo_url = img_tag.get("src") or img_tag.get("data-src")
+    
+    return {
+        "title": title,
+        "ingredients": ingredients,
+        "steps": steps,
+        "photo_url": photo_url,
+        "source_url": url
+    }
 
 # async def scrape_and_save_recipe(url: str, db: AsyncSession, force_save: bool = False):
 #     """スクレイピング + DB保存"""

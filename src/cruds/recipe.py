@@ -70,7 +70,6 @@ async def save_recipe(db: AsyncSession, recipe: Recipe) -> Recipe:
     
 async def create_from_scraped_data( 
     db: AsyncSession, 
-    *, 
     scraped_data: ScrapedRecipeData
 ) -> Recipe:
     """スクレイピングデータからレシピを作成"""
@@ -83,7 +82,7 @@ async def create_from_scraped_data(
         title=scraped_data["title"],
         # description=scraped_data["description"],
         source_type_id=1,
-        # source_url=scraped_data["source_url"]
+        source_url=scraped_data["source_url"]
     )
     
     db.add(recipe)
@@ -91,22 +90,21 @@ async def create_from_scraped_data(
     
     # 材料追加
     for ing_data in scraped_data["ingredients"]:
-        ingredient = Ingredient(recipe_id=recipe.id, name=ing_data)
+        ingredient = Ingredient(recipe_id=recipe.id, name=ing_data["name"], quantity=ing_data["quantity"])
         db.add(ingredient)
     
     # 手順追加
-    # for step_data in scraped_data["steps"]:
-    #     step = Step(recipe_id=recipe.id, **step_data)
-    #     db.add(step)
+    for step_data in scraped_data["steps"]:
+        step = Step(recipe_id=recipe.id, step_number=step_data["step_number"], instruction=step_data["instruction"])
+        db.add(step)
     
     # # 写真追加
-    # for photo_data in scraped_data.photos:
-    #     photo = RecipePhoto(
-    #         recipe_id=recipe.id,
-    #         photo_type_id=scraped_photo_type.id if scraped_photo_type else None,
-    #         **photo_data
-    #     )
-    #     db.add(photo)
+    photo = RecipePhoto(
+        recipe_id=recipe.id,
+        photo_type_id=1, # TODO: 現状固定値を返している
+        photo_url=scraped_data.get("photo_url")
+    )
+    db.add(photo)
     
     await db.commit()
     await db.refresh(recipe)

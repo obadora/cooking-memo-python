@@ -71,7 +71,6 @@ class Recipe(Base):
     servings = Column(Integer)
     source_type_id = Column(Integer, ForeignKey("source_types.id"), nullable=False)
     source_url = Column(String(500))
-    source_recipe_id = Column(String(50))
     source_book_title = Column(String(255))
     source_page = Column(Integer)
     manual_identifier = Column(String(100))
@@ -87,6 +86,8 @@ class Recipe(Base):
     steps = relationship("Step", back_populates="recipe", cascade="all, delete-orphan")
     categories = relationship("Category", secondary=recipe_categories_table, back_populates="recipes")
     tags = relationship("Tag", secondary=recipe_tags_table, back_populates="recipes")
+    class Config:
+        from_attributes = True
 class RecipePhoto(Base):
     __tablename__ = "recipe_photos"
     
