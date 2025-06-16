@@ -6,36 +6,32 @@ from sqlalchemy import select
 from sqlalchemy.engine import Result
 from sqlalchemy.orm import selectinload
 
-async def get(db: AsyncSession, id: int) -> Optional[Recipe]:
-    result: Result = await (
-        db.execute(
-            select(Recipe).filter(Recipe.id == id)
-        )
-    )
-    return result.scalar_one_or_none()
 # async def get(db: AsyncSession, id: int) -> Optional[Recipe]:
-#     try:
-#         # 関連データを事前に読み込むためのクエリ
-#         stmt = select(Recipe).options(
-#             # 関連テーブルを事前に読み込み
-#             selectinload(Recipe.source_type),        # source_typeテーブル
-#             selectinload(Recipe.ingredients),        # ingredientsテーブル
-#             selectinload(Recipe.steps),             # stepsテーブル
-#             selectinload(Recipe.photos).selectinload(RecipePhoto.photo_type),            # recipe_photosテーブル
-#             selectinload(Recipe.categories),        # categoriesテーブル（多対多）
-#             selectinload(Recipe.tags),              # tagsテーブル（多対多）
-#         ).where(Recipe.id == id)
+#     result: Result = await (
+#         db.execute(
+#             select(Recipe).filter(Recipe.id == id)
+#         )
+#     )
+#     return result.scalar_one_or_none()
+async def get(db: AsyncSession, id: int) -> Optional[Recipe]:
+    try:
+        # 関連データを事前に読み込むためのクエリ
+        stmt = select(Recipe).options(
+            # 関連テーブルを事前に読み込み
+            selectinload(Recipe.source_type),        # source_typeテーブル
+            selectinload(Recipe.ingredients),        # ingredientsテーブル
+            selectinload(Recipe.steps),             # stepsテーブル
+            selectinload(Recipe.photos).selectinload(RecipePhoto.photo_type), # recipe_photosテーブル
+            selectinload(Recipe.categories),        # categoriesテーブル（多対多）
+            selectinload(Recipe.tags),              # tagsテーブル（多対多）
+        ).where(Recipe.id == id)
         
-#         result: Result = await db.execute(stmt)
-#         recipe = result.scalar_one_or_none()
-        
-#         print(f"Query executed for recipe ID: {id}")
-#         print(f"Recipe found: {recipe}")
-        
-#         return recipe
-#     except Exception as e:
-#         print(f"Error in crud_recipe.get: {e}")
-#         raise e
+        result: Result = await db.execute(stmt)
+        recipe = result.scalar_one_or_none()
+        return recipe
+    except Exception as e:
+        print(f"Error in crud_recipe.get: {e}")
+        raise e
 # 軽量版：関連データなしでレシピのみ取得
 async def get_basic(db: AsyncSession, id: int) -> Optional[Recipe]:
     """関連データなしでレシピの基本情報のみ取得"""

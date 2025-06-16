@@ -2,17 +2,113 @@ from typing import Optional, List
 from datetime import date, datetime
 from pydantic import BaseModel, Field
 
+# === Pydanticモデル（Response用）の定義 ===
 
+class SourceTypeResponse(BaseModel):
+    id: int
+    code: str
+    name: str
+    description: Optional[str] = None
+    is_active: bool
+    
+    class Config:
+        from_attributes = True  # SQLAlchemy 2.0 + Pydantic v2
 
-# 自作レシピ用モデル
-# class Recipe(BaseModel):
-#     id: int
-#     name: str
-#     ingredients: List[str]
-#     photo_url: str
-#     reference: str
-#     created_at: datetime
-#     update_at: datetime
+class PhotoTypeResponse(BaseModel):
+    id: int
+    code: str
+    name: str
+    description: Optional[str] = None
+    is_reference: bool
+    is_active: bool
+    
+    class Config:
+        from_attributes = True
+
+class CategoryResponse(BaseModel):
+    id: int
+    name: str
+    color: str
+    
+    class Config:
+        from_attributes = True
+
+class TagResponse(BaseModel):
+    id: int
+    name: str
+    
+    class Config:
+        from_attributes = True
+
+class RecipePhotoResponse(BaseModel):
+    id: int
+    photo_url: str
+    photo_type: PhotoTypeResponse
+    is_primary: bool
+    sort_order: int
+    alt_text: Optional[str] = None
+    file_size: Optional[int] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    
+    class Config:
+        from_attributes = True
+
+class IngredientResponse(BaseModel):
+    id: int
+    name: str
+    quantity: Optional[str] = None
+    unit: Optional[str] = None
+    sort_order: int
+    notes: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+class StepResponse(BaseModel):
+    id: int
+    step_number: int
+    instruction: str
+    time_estimate: Optional[int] = None
+    temperature: Optional[int] = None
+    notes: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+# === メインのRecipeResponseモデル ===
+class RecipeDetailResponse(BaseModel):
+    """
+    selectinloadで全関連データを取得した場合のResponse Model
+    """
+    id: int
+    title: str
+    description: Optional[str] = None
+    cook_time: Optional[int] = None
+    servings: Optional[int] = None
+    source_url: Optional[str] = None
+    source_recipe_id: Optional[str] = None
+    source_book_title: Optional[str] = None
+    source_page: Optional[int] = None
+    manual_identifier: Optional[str] = None
+    cooking_date: Optional[date] = None
+    cooking_memo: Optional[str] = None
+    rating: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+    
+    # 関連データ
+    source_type: SourceTypeResponse
+    photos: List[RecipePhotoResponse] = []
+    ingredients: List[IngredientResponse] = []
+    steps: List[StepResponse] = []
+    categories: List[CategoryResponse] = []
+    tags: List[TagResponse] = []
+    
+    class Config:
+        from_attributes = True
+
+# TODO:以下リファクタリング対象        
 # ベーススキーマ
 class SourceTypeBase(BaseModel):
     code: str = Field(..., max_length=20)
