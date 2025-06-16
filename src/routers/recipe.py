@@ -79,7 +79,7 @@ async def read_recipe_basic(
 #         raise HTTPException(status_code=404, detail="Recipe not found")
 #     return recipe
 # レシピ詳細取得（完全版 - Eager Loading使用）
-@router.get("/recipes/{recipe_id}", response_model=recipe_schema.RecipeBase)
+@router.get("/recipes/{recipe_id}", response_model=recipe_schema.RecipeDetailResponse)
 async def read_recipe(
     recipe_id: int = Path(..., description="Recipe ID"),
     db: AsyncSession = Depends(get_db)
