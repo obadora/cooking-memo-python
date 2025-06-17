@@ -13,14 +13,16 @@ venv.bak/
 
 # Poetry
 .poetry/
-poetry.lock
 
 # VSCode
 .vscode/
 
 # Docker
 *.log
-docker-entrypoint-initdb.d/*
+# 機密情報や個人的なファイルのみ除外
+docker-entrypoint-initdb.d/*_local.sql
+docker-entrypoint-initdb.d/*_secret.sql
+docker-entrypoint-initdb.d/*.backup
 !docker-entrypoint-initdb.d/.gitkeep
 mysql_data/
 *.pid
@@ -32,3 +34,21 @@ Thumbs.db
 # その他
 *.sqlite3
 *.db
+# テスト・ビルド
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# 一時ファイル
+*.tmp
+*.temp
+*.bak
