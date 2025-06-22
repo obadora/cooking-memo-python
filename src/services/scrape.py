@@ -1,7 +1,5 @@
 import requests
 from bs4 import BeautifulSoup
-from src.cruds import recipe as crud_recipe
-from sqlalchemy.ext.asyncio import AsyncSession
 
 def scrape_recipe(url: str):
     response = requests.get(url)

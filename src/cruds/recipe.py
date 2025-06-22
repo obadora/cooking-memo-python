@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Tuple, Optional
-from src.models.recipe import Recipe, RecipePhoto, SourceType, PhotoType, Ingredient, Step, CookingRecord
+from typing import Optional
+from src.models.recipe import Recipe, RecipePhoto, Ingredient, Step, CookingRecord
 from src.schemas.recipe import ScrapedRecipeData
 from sqlalchemy import select
 from sqlalchemy.engine import Result
