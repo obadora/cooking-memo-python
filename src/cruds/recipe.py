@@ -21,7 +21,8 @@ async def get(db: AsyncSession, id: int) -> Optional[Recipe]:
             selectinload(Recipe.source_type),        # source_typeテーブル
             selectinload(Recipe.ingredients),        # ingredientsテーブル
             selectinload(Recipe.steps),             # stepsテーブル
-            selectinload(Recipe.photos).selectinload(RecipePhoto.photo_type), # recipe_photosテーブル
+            selectinload(Recipe.recipe_photos).selectinload(RecipePhoto.photo_type), # recipe_photosテーブル
+            selectinload(Recipe.cooking_records), # cooking_recordsテーブル
             selectinload(Recipe.categories),        # categoriesテーブル（多対多）
             selectinload(Recipe.tags),              # tagsテーブル（多対多）
         ).where(Recipe.id == id)
