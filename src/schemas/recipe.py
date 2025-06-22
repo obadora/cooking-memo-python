@@ -76,6 +76,23 @@ class StepResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class CookingRecordResponse(BaseModel):
+    id: int
+    recipe_id: int
+    cooking_date: date
+    actual_servings: Optional[int] = None
+    actual_cook_time: Optional[int] = None
+    rating: Optional[int] = None
+    cooking_memo: Optional[str] = None
+    difficulty_rating: Optional[int] = None
+    estimated_cost: Optional[float] = None
+    occasion: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
 # === メインのRecipeResponseモデル ===
 class RecipeDetailResponse(BaseModel):
     """
@@ -86,8 +103,8 @@ class RecipeDetailResponse(BaseModel):
     description: Optional[str] = None
     cook_time: Optional[int] = None
     servings: Optional[int] = None
+    source_type_id: Optional[int] = None
     source_url: Optional[str] = None
-    source_recipe_id: Optional[str] = None
     source_book_title: Optional[str] = None
     source_page: Optional[int] = None
     manual_identifier: Optional[str] = None
@@ -99,9 +116,10 @@ class RecipeDetailResponse(BaseModel):
     
     # 関連データ
     source_type: SourceTypeResponse
-    photos: List[RecipePhotoResponse] = []
+    recipe_photos: List[RecipePhotoResponse] = []
     ingredients: List[IngredientResponse] = []
     steps: List[StepResponse] = []
+    cooking_records: List[CookingRecordResponse] = []  # cooking_recordsはStepResponseで代用
     categories: List[CategoryResponse] = []
     tags: List[TagResponse] = []
     

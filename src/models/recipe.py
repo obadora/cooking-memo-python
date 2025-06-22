@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 
 from src.db import Base
-from sqlalchemy import Table, Text, Date, DateTime, func
+from sqlalchemy import Table, Text, Date, DateTime, DECIMAL, func
 
 # 多対多リレーションのための関連テーブル
 recipe_categories_table = Table(
@@ -40,7 +40,7 @@ class PhotoType(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=func.now())
     
-    photos = relationship("RecipePhoto", back_populates="photo_type") 
+    recipe_photos = relationship("RecipePhoto", back_populates="photo_type") 
 
 class Category(Base):
     __tablename__ = "categories"
@@ -71,7 +71,6 @@ class Recipe(Base):
     servings = Column(Integer)
     source_type_id = Column(Integer, ForeignKey("source_types.id"), nullable=False)
     source_url = Column(String(500))
-    source_recipe_id = Column(String(50))
     source_book_title = Column(String(255))
     source_page = Column(Integer)
     manual_identifier = Column(String(100))
@@ -82,11 +81,30 @@ class Recipe(Base):
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     # リレーション
     source_type = relationship("SourceType", back_populates="recipes")
-    photos = relationship("RecipePhoto", back_populates="recipe", cascade="all, delete-orphan")
+    recipe_photos = relationship("RecipePhoto", back_populates="recipe", cascade="all, delete-orphan")
     ingredients = relationship("Ingredient", back_populates="recipe", cascade="all, delete-orphan")
     steps = relationship("Step", back_populates="recipe", cascade="all, delete-orphan")
+    cooking_records = relationship("CookingRecord", back_populates="recipe", cascade="all, delete-orphan")
     categories = relationship("Category", secondary=recipe_categories_table, back_populates="recipes")
     tags = relationship("Tag", secondary=recipe_tags_table, back_populates="recipes")
+class CookingRecord(Base):
+    __tablename__ = "cooking_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    recipe_id = Column(Integer, ForeignKey("recipes.id"), nullable=False)
+    cooking_date = Column(Date, nullable=False, index=True)
+    actual_servings = Column(Integer)
+    actual_cook_time = Column(Integer)
+    rating = Column(Integer)
+    cooking_memo = Column(Text)
+    difficulty_rating = Column(Integer)
+    estimated_cost = Column(DECIMAL(10, 2))
+    occasion = Column(String(100))
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    # リレーション
+    recipe = relationship("Recipe", back_populates="cooking_records")
+    
 class RecipePhoto(Base):
     __tablename__ = "recipe_photos"
     
@@ -102,8 +120,8 @@ class RecipePhoto(Base):
     height = Column(Integer)
     created_at = Column(DateTime, default=func.now())
     
-    recipe = relationship("Recipe", back_populates="photos")
-    photo_type = relationship("PhotoType", back_populates="photos")
+    recipe = relationship("Recipe", back_populates="recipe_photos")
+    photo_type = relationship("PhotoType", back_populates="recipe_photos")
 
 class Ingredient(Base):
     __tablename__ = "ingredients"
