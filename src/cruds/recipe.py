@@ -109,3 +109,14 @@ async def create_from_scraped_data(
     await db.refresh(recipe)
     
     return recipe
+
+async def delete_recipe(db: AsyncSession, recipe: Recipe):
+    """レシピを削除"""
+    try:
+        await db.delete(recipe)
+        await db.commit()
+        return True
+    except Exception as e:
+        print(f"Error in crud_recipe.delete_recipe: {e}")
+        await db.rollback()
+        raise e

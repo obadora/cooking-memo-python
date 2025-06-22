@@ -109,3 +109,12 @@ async def scrape_and_save_recipe(
     # スクレイピング実行
     scraped_data = scrape_recipe(source_url)
     return await crud_recipe.create_from_scraped_data(db, scraped_data=scraped_data)
+
+@router.delete("/recipes/{recipe_id}", response_model=None)
+async def delete_recipe(
+    recipe_id: int, db: AsyncSession = Depends(get_db)):
+    recipe = await crud_recipe.get(db, recipe_id)
+    if recipe is None:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+    
+    return await crud_recipe.delete_recipe(db, recipe)
