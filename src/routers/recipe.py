@@ -13,6 +13,7 @@ from src.models.recipe import Recipe, Ingredient, Step, RecipePhoto
 import src.services.scrape as services_scrape
 from src.models.recipe import Recipe, RecipePhoto  
 from src.db import get_db
+from datetime import date
 
 router = APIRouter()
 # 仮のDB（メモリ）
@@ -100,7 +101,7 @@ async def read_recipe(
         print(f"Error in read_recipe: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@router.post("/recipes/scrape", response_model=None)
+@router.post("/recipe/scrape", response_model=None)
 async def scrape_and_save_recipe(
     source_url: str,
     db: AsyncSession = Depends(get_db)
@@ -111,11 +112,11 @@ async def scrape_and_save_recipe(
         recipe_id = existing_recipe.id
         return await crud_recipe.register_only_record(db, recipe_id)
     else:
-        # スクレイピング実行
+        # スクレイピングを実行し、cooking_recordsにも登録する
         scraped_data = services_scrape.scrape_recipe(source_url)
         return await crud_recipe.create_from_scraped_data(db, scraped_data=scraped_data)
 
-@router.delete("/recipes/{recipe_id}", response_model=None)
+@router.delete("/recipe/{recipe_id}", response_model=None)
 async def delete_recipe(
     recipe_id: int, db: AsyncSession = Depends(get_db)):
     recipe = await crud_recipe.get(db, recipe_id)
@@ -123,3 +124,12 @@ async def delete_recipe(
         raise HTTPException(status_code=404, detail="Recipe not found")
     
     return await crud_recipe.delete_recipe(db, recipe)
+
+@router.delete("/recipe/record/{recipe_id}/{date}", response_model=None)
+async def delete_cooking_record(
+    recipe_id: int, date: date, db: AsyncSession = Depends(get_db)):
+    cooking_record = await crud_recipe.get_cooking_record(db, recipe_id, date)
+    if cooking_record is None:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+    
+    return await crud_recipe.delete_cooking_record(db, cooking_record)

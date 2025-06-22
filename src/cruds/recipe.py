@@ -5,6 +5,7 @@ from src.schemas.recipe import ScrapedRecipeData
 from sqlalchemy import select
 from sqlalchemy.engine import Result
 from sqlalchemy.orm import selectinload
+from datetime import date
 
 # async def get(db: AsyncSession, id: int) -> Optional[Recipe]:
 #     result: Result = await (
@@ -33,18 +34,12 @@ async def get(db: AsyncSession, id: int) -> Optional[Recipe]:
     except Exception as e:
         print(f"Error in crud_recipe.get: {e}")
         raise e
-# 軽量版：関連データなしでレシピのみ取得
-async def get_basic(db: AsyncSession, id: int) -> Optional[Recipe]:
-    """関連データなしでレシピの基本情報のみ取得"""
-    try:
-        stmt = select(Recipe).where(Recipe.id == id)
-        result: Result = await db.execute(stmt)
+async def get_cooking_record(db: AsyncSession, id: int, date: date) -> Optional[Recipe]:
+        result = await db.execute(
+        select(CookingRecord).where(CookingRecord.recipe_id == id, CookingRecord.cooking_date == date)
+    )
         recipe = result.scalar_one_or_none()
         return recipe
-    except Exception as e:
-        print(f"Error in crud_recipe.get_basic: {e}")
-        raise e
-    
 # crud/crud_recipe.py
 async def get_by_source_url(db: AsyncSession, source_url: str):
     """URLでレシピを検索"""
@@ -53,18 +48,19 @@ async def get_by_source_url(db: AsyncSession, source_url: str):
     )
     return result.scalar_one_or_none()
 
-async def save_recipe(db: AsyncSession, recipe: Recipe) -> Recipe:
-    """レシピを保存"""
-    try:
-        db.add(recipe)
-        await db.commit()
-        await db.refresh(recipe)
-        return recipe
-    except Exception as e:
-        print(f"Error in crud_recipe.save_recipe: {e}")
-        await db.rollback()
-        raise e
-    
+# async def save_recipe(db: AsyncSession, recipe: Recipe) -> Recipe:
+#     """レシピを保存"""
+#     try:
+#         db.add(recipe)
+#         await db.commit()
+#         await db.refresh(recipe)
+#         return recipe
+#     except Exception as e:
+#         print(f"Error in crud_recipe.save_recipe: {e}")
+#         await db.rollback()
+#         raise e
+
+# post    
 async def create_from_scraped_data( 
     db: AsyncSession, 
     *, 
@@ -125,10 +121,22 @@ async def register_only_record(db: AsyncSession, recipe_id: int) -> CookingRecor
     await db.commit()
     return cooking_record
 
+#delete
 async def delete_recipe(db: AsyncSession, recipe: Recipe):
     """レシピを削除"""
     try:
         await db.delete(recipe)
+        await db.commit()
+        return True
+    except Exception as e:
+        print(f"Error in crud_recipe.delete_recipe: {e}")
+        await db.rollback()
+        raise e
+
+async def delete_cooking_record(db: AsyncSession, cooking_record: CookingRecord):
+    """日付で管理しているデータを削除"""
+    try:
+        await db.delete(cooking_record)
         await db.commit()
         return True
     except Exception as e:
