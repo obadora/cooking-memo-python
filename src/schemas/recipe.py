@@ -126,6 +126,10 @@ class RecipeDetailResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class RecipeScrapeRequest(BaseModel):
+    source_url: str
+    
+
 # TODO:以下リファクタリング対象        
 # ベーススキーマ
 class SourceTypeBase(BaseModel):
