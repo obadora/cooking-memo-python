@@ -7,7 +7,6 @@ app = FastAPI()
 app.include_router(task.router)
 app.include_router(done.router)
 app.include_router(recipe.router)
-app.include_router(scrape.router)
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Tuple, Optional
-from src.models.recipe import Recipe, RecipePhoto, SourceType, PhotoType, Ingredient, Step
+from src.models.recipe import Recipe, RecipePhoto, SourceType, PhotoType, Ingredient, Step, CookingRecord
 from src.schemas.recipe import ScrapedRecipeData
 from sqlalchemy import select
 from sqlalchemy.engine import Result
@@ -80,7 +80,7 @@ async def create_from_scraped_data(
         title=scraped_data["title"],
         # description=scraped_data["description"],
         source_type_id=1,
-        # source_url=scraped_data["source_url"]
+        source_url=scraped_data["source_url"]
     )
     
     db.add(recipe)
@@ -92,23 +92,38 @@ async def create_from_scraped_data(
         db.add(ingredient)
     
     # 手順追加
-    # for step_data in scraped_data["steps"]:
-    #     step = Step(recipe_id=recipe.id, **step_data)
-    #     db.add(step)
+    for i, step_data in enumerate(scraped_data["steps"]):
+        step = Step(recipe_id=recipe.id, step_number=i+1, instruction=step_data)
+        db.add(step)
     
-    # # 写真追加
-    # for photo_data in scraped_data.photos:
-    #     photo = RecipePhoto(
-    #         recipe_id=recipe.id,
-    #         photo_type_id=scraped_photo_type.id if scraped_photo_type else None,
-    #         **photo_data
-    #     )
-    #     db.add(photo)
+    # 写真追加
+    recipe_photo = RecipePhoto(
+            recipe_id=recipe.id,
+            photo_url=scraped_data["photo_url"],
+            photo_type_id=1,
+            is_primary=True  # 最初の写真をプライマリに設定
+        )
+    db.add(recipe_photo)
+
+    cooking_record = CookingRecord(
+        recipe_id=recipe.id,
+        cooking_date="2025-07-01"
+    )
+    db.add(cooking_record)
     
     await db.commit()
     await db.refresh(recipe)
     
     return recipe
+async def register_only_record(db: AsyncSession, recipe_id: int) -> CookingRecord: 
+    cooking_record = CookingRecord(
+        recipe_id=recipe_id,
+        cooking_date="2025-08-01"
+    )
+    db.add(cooking_record)
+    
+    await db.commit()
+    return cooking_record
 
 async def delete_recipe(db: AsyncSession, recipe: Recipe):
     """レシピを削除"""

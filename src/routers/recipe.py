@@ -10,7 +10,7 @@ import src.schemas.recipe as recipe_schema
 from src.cruds import recipe as crud_recipe
 from src.schemas.recipe import SourceType, PhotoType
 from src.models.recipe import Recipe, Ingredient, Step, RecipePhoto
-from src.services.scrape import scrape_recipe
+import src.services.scrape as services_scrape
 from src.models.recipe import Recipe, RecipePhoto  
 from src.db import get_db
 
@@ -105,10 +105,15 @@ async def scrape_and_save_recipe(
     source_url: str,
     db: AsyncSession = Depends(get_db)
 ):
-    """URLからレシピをスクレイピングして保存"""    
-    # スクレイピング実行
-    scraped_data = scrape_recipe(source_url)
-    return await crud_recipe.create_from_scraped_data(db, scraped_data=scraped_data)
+    
+    existing_recipe = await crud_recipe.get_by_source_url(db, source_url)
+    if existing_recipe:
+        recipe_id = existing_recipe.id
+        return await crud_recipe.register_only_record(db, recipe_id)
+    else:
+        # スクレイピング実行
+        scraped_data = services_scrape.scrape_recipe(source_url)
+        return await crud_recipe.create_from_scraped_data(db, scraped_data=scraped_data)
 
 @router.delete("/recipes/{recipe_id}", response_model=None)
 async def delete_recipe(

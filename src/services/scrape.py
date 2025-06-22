@@ -13,8 +13,8 @@ def scrape_recipe(url: str):
     # 最初の画像を取得
     video_tag = soup.find("video")  # 最初の<video>タグを取得
     if video_tag:
-        poster_url = video_tag.get("poster")  # poster属性から画像URLを取得
-    return {"title": title, "ingredients": ingredients, "steps": steps, "poster_url": poster_url}
+        photo_url = video_tag.get("poster")  # poster属性から画像URLを取得
+    return {"title": title, "source_url": url, "ingredients": ingredients, "steps": steps, "photo_url": photo_url}
 
 # async def scrape_and_save_recipe(url: str, db: AsyncSession, force_save: bool = False):
 #     """スクレイピング + DB保存"""
