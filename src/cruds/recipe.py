@@ -1,19 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Tuple, Optional
-from src.models.recipe import Recipe, RecipePhoto, SourceType, PhotoType, Ingredient, Step, CookingRecord
+from typing import Optional
+from src.models.recipe import Recipe, RecipePhoto, Ingredient, Step, CookingRecord
 from src.schemas.recipe import ScrapedRecipeData
 from sqlalchemy import select
 from sqlalchemy.engine import Result
 from sqlalchemy.orm import selectinload
 from datetime import date
 
-# async def get(db: AsyncSession, id: int) -> Optional[Recipe]:
-#     result: Result = await (
-#         db.execute(
-#             select(Recipe).filter(Recipe.id == id)
-#         )
-#     )
-#     return result.scalar_one_or_none()
 async def get(db: AsyncSession, id: int) -> Optional[Recipe]:
     try:
         # 関連データを事前に読み込むためのクエリ
@@ -47,18 +40,6 @@ async def get_by_source_url(db: AsyncSession, source_url: str):
         select(Recipe).where(Recipe.source_url == source_url)
     )
     return result.scalar_one_or_none()
-
-# async def save_recipe(db: AsyncSession, recipe: Recipe) -> Recipe:
-#     """レシピを保存"""
-#     try:
-#         db.add(recipe)
-#         await db.commit()
-#         await db.refresh(recipe)
-#         return recipe
-#     except Exception as e:
-#         print(f"Error in crud_recipe.save_recipe: {e}")
-#         await db.rollback()
-#         raise e
 
 # post    
 async def create_from_scraped_data( 

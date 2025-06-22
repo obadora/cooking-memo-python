@@ -1,11 +1,9 @@
 from fastapi import FastAPI
-from src.routers import task, done, recipe, scrape
+from src.routers import recipe
 from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI()
-app.include_router(task.router)
-app.include_router(done.router)
 app.include_router(recipe.router)
 
 app.add_middleware(
