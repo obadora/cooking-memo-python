@@ -29,18 +29,22 @@ async def read_recipe(
         print(f"Error in read_recipe: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@router.post("/recipe/scrape", response_model=None)
+@router.post("/recipe/scrape", response_model=recipe_schema.RecipeDetailResponse)
 async def scrape_and_save_recipe(
-    source_url: str,
+    request: recipe_schema.RecipeScrapeRequest,
     db: AsyncSession = Depends(get_db)
 ):
-    existing_recipe = await crud_recipe.get_by_source_url(db, source_url)
+    print(f"Scraping recipe from URL: {request.source_url}")
+    existing_recipe = await crud_recipe.get_by_source_url(db, request.source_url)
     if existing_recipe:
         recipe_id = existing_recipe.id
-        return await crud_recipe.register_only_record(db, recipe_id)
+        record = await crud_recipe.register_only_record(db, recipe_id)
+        print("Returning recipe:", record)
+        complete_recipe  = await crud_recipe.get(db, recipe_id)
+        return complete_recipe 
     else:
         # スクレイピングを実行し、cooking_recordsにも登録する
-        scraped_data = services_scrape.scrape_recipe(source_url)
+        scraped_data = services_scrape.scrape_recipe(request.source_url)
         return await crud_recipe.create_from_scraped_data(db, scraped_data=scraped_data)
 
 @router.delete("/recipe/{recipe_id}", response_model=None)

@@ -46,7 +46,7 @@ async def create_from_scraped_data(
     db: AsyncSession, 
     *, 
     scraped_data: ScrapedRecipeData
-) -> Recipe:
+) ->  Optional[Recipe]:
     """スクレイピングデータからレシピを作成"""
     # webソースタイプを取得
     # web_source = db.query(SourceType).filter(SourceType.code == "web").first()
@@ -90,9 +90,9 @@ async def create_from_scraped_data(
     
     await db.commit()
     await db.refresh(recipe)
-    
-    return recipe
-async def register_only_record(db: AsyncSession, recipe_id: int) -> CookingRecord: 
+    complete_recipe  = await get(db, recipe.id)
+    return complete_recipe 
+async def register_only_record(db: AsyncSession, recipe_id: int) -> None: 
     cooking_record = CookingRecord(
         recipe_id=recipe_id,
         cooking_date="2025-08-01"
