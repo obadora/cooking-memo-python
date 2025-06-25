@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional
+from typing import Optional, List
 from src.models.recipe import Recipe, RecipePhoto, Ingredient, Step, CookingRecord
 from src.schemas.recipe import ScrapedRecipeData
 from sqlalchemy import select
@@ -27,12 +27,33 @@ async def get(db: AsyncSession, id: int) -> Optional[Recipe]:
     except Exception as e:
         print(f"Error in crud_recipe.get: {e}")
         raise e
-async def get_cooking_record(db: AsyncSession, id: int, date: date) -> Optional[Recipe]:
-        result = await db.execute(
+async def get_cooking_record(db: AsyncSession, id: int, date: date) -> Optional[CookingRecord]:
+    result = await db.execute(
         select(CookingRecord).where(CookingRecord.recipe_id == id, CookingRecord.cooking_date == date)
     )
-        recipe = result.scalar_one_or_none()
-        return recipe
+    cooking_record = result.scalar_one_or_none()
+    return cooking_record
+
+async def get_recipes_by_cooking_date(db: AsyncSession, cooking_date: date) -> List[Recipe]:
+    """指定した日付で調理したレシピを全て取得"""
+    try:
+        # cooking_recordsから指定日付のrecipe_idを取得し、関連するレシピを取得
+        stmt = select(Recipe).options(
+            selectinload(Recipe.source_type),
+            selectinload(Recipe.ingredients),
+            selectinload(Recipe.steps),
+            selectinload(Recipe.recipe_photos).selectinload(RecipePhoto.photo_type),
+            selectinload(Recipe.cooking_records),
+            selectinload(Recipe.categories),
+            selectinload(Recipe.tags),
+        ).join(CookingRecord).where(CookingRecord.cooking_date == cooking_date)
+        
+        result: Result = await db.execute(stmt)
+        recipes = result.scalars().all()
+        return list(recipes)
+    except Exception as e:
+        print(f"Error in get_recipes_by_cooking_date: {e}")
+        raise e
 # crud/crud_recipe.py
 async def get_by_source_url(db: AsyncSession, source_url: str):
     """URLでレシピを検索"""
@@ -45,7 +66,8 @@ async def get_by_source_url(db: AsyncSession, source_url: str):
 async def create_from_scraped_data( 
     db: AsyncSession, 
     *, 
-    scraped_data: ScrapedRecipeData
+    scraped_data: ScrapedRecipeData,
+    cooking_date: date
 ) ->  Optional[Recipe]:
     """スクレイピングデータからレシピを作成"""
     # webソースタイプを取得
@@ -84,7 +106,7 @@ async def create_from_scraped_data(
 
     cooking_record = CookingRecord(
         recipe_id=recipe.id,
-        cooking_date="2025-07-01"
+        cooking_date=cooking_date
     )
     db.add(cooking_record)
     
@@ -92,10 +114,10 @@ async def create_from_scraped_data(
     await db.refresh(recipe)
     complete_recipe  = await get(db, recipe.id)
     return complete_recipe 
-async def register_only_record(db: AsyncSession, recipe_id: int) -> None: 
+async def register_only_record(db: AsyncSession, recipe_id: int, cooking_date: date) -> None: 
     cooking_record = CookingRecord(
         recipe_id=recipe_id,
-        cooking_date="2025-08-01"
+        cooking_date=cooking_date
     )
     db.add(cooking_record)
     

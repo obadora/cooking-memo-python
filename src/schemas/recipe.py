@@ -128,6 +128,7 @@ class RecipeDetailResponse(BaseModel):
 
 class RecipeScrapeRequest(BaseModel):
     source_url: str
+    cooking_date: date
     
 
 # TODO:以下リファクタリング対象        

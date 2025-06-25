@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Path, Depends
+from fastapi import APIRouter, HTTPException, Path, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 import src.schemas.recipe as recipe_schema
 from src.cruds import recipe as crud_recipe
 import src.services.scrape as services_scrape
 from src.db import get_db
 from datetime import date
+from typing import List
 
 router = APIRouter()
 # 仮のDB（メモリ）
@@ -38,14 +39,14 @@ async def scrape_and_save_recipe(
     existing_recipe = await crud_recipe.get_by_source_url(db, request.source_url)
     if existing_recipe:
         recipe_id = existing_recipe.id
-        record = await crud_recipe.register_only_record(db, recipe_id)
+        record = await crud_recipe.register_only_record(db, recipe_id, request.cooking_date)
         print("Returning recipe:", record)
         complete_recipe  = await crud_recipe.get(db, recipe_id)
         return complete_recipe 
     else:
         # スクレイピングを実行し、cooking_recordsにも登録する
         scraped_data = services_scrape.scrape_recipe(request.source_url)
-        return await crud_recipe.create_from_scraped_data(db, scraped_data=scraped_data)
+        return await crud_recipe.create_from_scraped_data(db, scraped_data=scraped_data, cooking_date=request.cooking_date)
 
 @router.delete("/recipe/{recipe_id}", response_model=None)
 async def delete_recipe(
@@ -64,3 +65,20 @@ async def delete_cooking_record(
         raise HTTPException(status_code=404, detail="Recipe not found")
     
     return await crud_recipe.delete_cooking_record(db, cooking_record)
+
+@router.get("/recipes/date/{cooking_date}", response_model=List[recipe_schema.RecipeDetailResponse])
+async def get_recipes_by_date(
+    cooking_date: date = Path(..., description="調理日付 (YYYY-MM-DD形式)"),
+    db: AsyncSession = Depends(get_db)
+):
+    """指定した日付に調理したレシピを全て取得"""
+    try:
+        recipes = await crud_recipe.get_recipes_by_cooking_date(db, cooking_date)
+        
+        if not recipes:
+            return []  # 空のリストを返す（404エラーではなく）
+            
+        return recipes
+    except Exception as e:
+        print(f"Error in get_recipes_by_date: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
