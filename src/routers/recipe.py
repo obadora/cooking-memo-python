@@ -76,7 +76,7 @@ async def scrape_and_save_recipe(
         recipe_id = existing_recipe.id
         record = await crud_recipe.register_only_record(db, recipe_id, request.cooking_date)
         print("Returning recipe:", record)
-        complete_recipe  = await crud_recipe.get(db, recipe_id)
+        complete_recipe  = await crud_recipe.get_recipe_by_id(db, recipe_id)
         return complete_recipe 
     else:
         # スクレイピングを実行し、cooking_recordsにも登録する
@@ -86,7 +86,7 @@ async def scrape_and_save_recipe(
 @router.delete("/recipe/{recipe_id}", response_model=None)
 async def delete_recipe(
     recipe_id: int, db: AsyncSession = Depends(get_db)):
-    recipe = await crud_recipe.get(db, recipe_id)
+    recipe = await crud_recipe.get_recipe_by_id(db, recipe_id)
     if recipe is None:
         raise HTTPException(status_code=404, detail="Recipe not found")
     
