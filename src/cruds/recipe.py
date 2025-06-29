@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
 from src.models.recipe import Recipe, RecipePhoto, Ingredient, Step, CookingRecord
 from src.schemas.recipe import ScrapedRecipeData
-from sqlalchemy import select
+from sqlalchemy import select, extract
 from sqlalchemy.engine import Result
 from sqlalchemy.orm import selectinload
 from datetime import date
@@ -73,6 +73,30 @@ async def get_recipes_by_cooking_date(db: AsyncSession, cooking_date: date) -> L
         return list(recipes)
     except Exception as e:
         print(f"Error in get_recipes_by_cooking_date: {e}")
+        raise e
+
+async def get_recipes_by_month(db: AsyncSession, year: int, month: int) -> List[Recipe]:
+    """指定した年月で調理したレシピを全て取得"""
+    try:
+        # cooking_recordsから指定年月のrecipe_idを取得し、関連するレシピを取得
+        stmt = select(Recipe).options(
+            selectinload(Recipe.source_type),
+            selectinload(Recipe.ingredients),
+            selectinload(Recipe.steps),
+            selectinload(Recipe.recipe_photos).selectinload(RecipePhoto.photo_type),
+            selectinload(Recipe.cooking_records),
+            selectinload(Recipe.categories),
+            selectinload(Recipe.tags),
+        ).join(CookingRecord).where(
+            extract('year', CookingRecord.cooking_date) == year,
+            extract('month', CookingRecord.cooking_date) == month
+        )
+        
+        result: Result = await db.execute(stmt)
+        recipes = result.scalars().all()
+        return list(recipes)
+    except Exception as e:
+        print(f"Error in get_recipes_by_month: {e}")
         raise e
 # crud/crud_recipe.py
 async def get_by_source_url(db: AsyncSession, source_url: str):
