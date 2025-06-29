@@ -1,4 +1,5 @@
 # CLAUDE.md
+
 必ず日本語で回答してください。
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -9,8 +10,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Start all services (FastAPI + MySQL) with Docker Compose
 docker-compose up
 
+# Start in detached mode
+docker-compose up -d
+
+# Stop all services
+docker-compose down
+
 # The FastAPI server runs on http://localhost:8000
 # MySQL runs on port 33306 (mapped from container port 3306)
+```
+
+### Development Workflow
+```bash
+# Execute commands inside the workspace container
+docker-compose exec workspace <command>
+
+# Run the FastAPI server directly (if needed)
+docker-compose exec workspace poetry run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+
+# Check container logs
+docker-compose logs workspace
+docker-compose logs db
 ```
 
 ### Database Management
@@ -20,6 +40,9 @@ docker-compose exec workspace poetry run python src/migrate_db.py
 
 # Access MySQL CLI
 docker-compose exec db mysql -u root -p
+
+# View database logs
+docker-compose logs db
 ```
 
 ### Dependency Management
@@ -29,6 +52,12 @@ docker-compose exec workspace poetry install
 
 # Add new dependency
 docker-compose exec workspace poetry add <package_name>
+
+# Remove dependency
+docker-compose exec workspace poetry remove <package_name>
+
+# Show installed packages
+docker-compose exec workspace poetry show
 ```
 
 ## Architecture Overview
@@ -89,3 +118,19 @@ src/
 - Database uses MySQL native password authentication
 - All database operations are async using SQLAlchemy's async session
 - Recipe scraping checks for existing recipes by source URL to avoid duplicates
+- Environment variables are loaded from `.env` file (create from `.env.example` if needed)
+- Docker containers must be running for development - all commands execute inside containers
+
+## Testing and Debugging
+
+```bash
+# Access Python shell inside container
+docker-compose exec workspace poetry run python
+
+# Check FastAPI automatic documentation
+# http://localhost:8000/docs (Swagger UI)
+# http://localhost:8000/redoc (ReDoc)
+
+# Debug database connection
+docker-compose exec workspace poetry run python -c "from src.db import engine; print('DB connection OK')"
+```

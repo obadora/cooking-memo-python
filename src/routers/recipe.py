@@ -11,6 +11,25 @@ router = APIRouter()
 # 仮のDB（メモリ）
 recipes_db = []
 
+@router.get("/recipes", response_model=List[recipe_schema.RecipeDetailResponse])
+async def read_recipe(
+    db: AsyncSession = Depends(get_db)
+):
+    """レシピ詳細全取得（全関連データ含む）"""
+    try:
+        # 修正されたget関数（Eager Loading対応）を使用
+        recipes = await crud_recipe.get_all_recipes(db)
+
+        if not recipes:
+            return []  # 空のリストを返す（404エラーではなく）
+
+        return recipes
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in read_recipe: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
 @router.get("/recipes/{recipe_id}", response_model=recipe_schema.RecipeDetailResponse)
 async def read_recipe(
     recipe_id: int = Path(..., description="Recipe ID"),
@@ -19,7 +38,7 @@ async def read_recipe(
     """レシピ詳細取得（全関連データ含む）"""
     try:
         # 修正されたget関数（Eager Loading対応）を使用
-        recipe = await crud_recipe.get(db, recipe_id)
+        recipe = await crud_recipe.get_recipe_by_id(db, recipe_id)
         
         if recipe is None:
             raise HTTPException(status_code=404, detail="Recipe not found") 
@@ -29,7 +48,23 @@ async def read_recipe(
     except Exception as e:
         print(f"Error in read_recipe: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-
+@router.get("/recipes/date/{cooking_date}", response_model=List[recipe_schema.RecipeDetailResponse])
+async def get_recipes_by_date(
+    cooking_date: date = Path(..., description="調理日付 (YYYY-MM-DD形式)"),
+    db: AsyncSession = Depends(get_db)
+):
+    """指定した日付に調理したレシピを全て取得"""
+    try:
+        recipes = await crud_recipe.get_recipes_by_cooking_date(db, cooking_date)
+        
+        if not recipes:
+            return []  # 空のリストを返す（404エラーではなく）
+            
+        return recipes
+    except Exception as e:
+        print(f"Error in get_recipes_by_date: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    
 @router.post("/recipe/scrape", response_model=recipe_schema.RecipeDetailResponse)
 async def scrape_and_save_recipe(
     request: recipe_schema.RecipeScrapeRequest,
@@ -66,19 +101,3 @@ async def delete_cooking_record(
     
     return await crud_recipe.delete_cooking_record(db, cooking_record)
 
-@router.get("/recipes/date/{cooking_date}", response_model=List[recipe_schema.RecipeDetailResponse])
-async def get_recipes_by_date(
-    cooking_date: date = Path(..., description="調理日付 (YYYY-MM-DD形式)"),
-    db: AsyncSession = Depends(get_db)
-):
-    """指定した日付に調理したレシピを全て取得"""
-    try:
-        recipes = await crud_recipe.get_recipes_by_cooking_date(db, cooking_date)
-        
-        if not recipes:
-            return []  # 空のリストを返す（404エラーではなく）
-            
-        return recipes
-    except Exception as e:
-        print(f"Error in get_recipes_by_date: {e}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
