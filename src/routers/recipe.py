@@ -64,6 +64,28 @@ async def get_recipes_by_date(
     except Exception as e:
         print(f"Error in get_recipes_by_date: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@router.get("/cooking-records/month/{month_string}", response_model=List[recipe_schema.RecipeDetailResponse])
+async def get_cooking_records_by_month(
+    month_string: str = Path(..., description="年月 (YYYY-MM形式)", regex=r'^\d{4}-\d{2}$'),
+    db: AsyncSession = Depends(get_db)
+):
+    """指定した年月に調理したレシピを全て取得"""
+    try:
+        # month_stringから年と月を抽出
+        year, month = map(int, month_string.split('-'))
+        
+        recipes = await crud_recipe.get_recipes_by_month(db, year, month)
+        
+        if not recipes:
+            return []  # 空のリストを返す（404エラーではなく）
+            
+        return recipes
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Invalid month format. Use YYYY-MM format.")
+    except Exception as e:
+        print(f"Error in get_cooking_records_by_month: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     
 @router.post("/recipe/scrape", response_model=recipe_schema.RecipeDetailResponse)
 async def scrape_and_save_recipe(
