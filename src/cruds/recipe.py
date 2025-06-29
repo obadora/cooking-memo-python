@@ -7,7 +7,27 @@ from sqlalchemy.engine import Result
 from sqlalchemy.orm import selectinload
 from datetime import date
 
-async def get(db: AsyncSession, id: int) -> Optional[Recipe]:
+async def get_all_recipes(db: AsyncSession) -> Optional[Recipe]:
+    try:
+        # 関連データを事前に読み込むためのクエリ
+        stmt = select(Recipe).options(
+            # 関連テーブルを事前に読み込み
+            selectinload(Recipe.source_type),        # source_typeテーブル
+            selectinload(Recipe.ingredients),        # ingredientsテーブル
+            selectinload(Recipe.steps),             # stepsテーブル
+            selectinload(Recipe.recipe_photos).selectinload(RecipePhoto.photo_type), # recipe_photosテーブル
+            selectinload(Recipe.cooking_records), # cooking_recordsテーブル
+            selectinload(Recipe.categories),        # categoriesテーブル（多対多）
+            selectinload(Recipe.tags),              # tagsテーブル（多対多）
+        )
+        result: Result = await db.execute(stmt)
+        recipe = result.scalars().all()
+        return recipe
+    except Exception as e:
+        print(f"Error in crud_recipe.get: {e}")
+        raise e
+
+async def get_recipe_by_id(db: AsyncSession, id: int) -> Optional[Recipe]:
     try:
         # 関連データを事前に読み込むためのクエリ
         stmt = select(Recipe).options(
@@ -112,7 +132,7 @@ async def create_from_scraped_data(
     
     await db.commit()
     await db.refresh(recipe)
-    complete_recipe  = await get(db, recipe.id)
+    complete_recipe  = await get_recipe_by_id(db, recipe.id)
     return complete_recipe 
 async def register_only_record(db: AsyncSession, recipe_id: int, cooking_date: date) -> None: 
     cooking_record = CookingRecord(
