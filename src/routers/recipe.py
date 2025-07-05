@@ -5,12 +5,12 @@ from src.cruds import recipe as crud_recipe
 import src.services.scrape as services_scrape
 from src.db import get_db
 from datetime import date
-from typing import List
+from typing import List, Optional
 
 router = APIRouter()
 # 仮のDB（メモリ）
 recipes_db = []
-
+    
 @router.get("/recipes", response_model=List[recipe_schema.RecipeDetailResponse])
 async def read_recipe(
     db: AsyncSession = Depends(get_db)
@@ -29,7 +29,29 @@ async def read_recipe(
     except Exception as e:
         print(f"Error in read_recipe: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-
+@router.get("/recipes/search", response_model=List[recipe_schema.RecipeDetailResponse])
+async def search_recipes(
+    tag_ids: Optional[List[int]] = Query(None, description="タグIDで絞り込み"),
+    limit: Optional[int] = Query(None, ge=1, le=100, description="取得件数上限"),
+    sort_by_created_at: Optional[bool] = Query(False, description="作成日時でソートするか"),
+    sort_order: Optional[recipe_schema.SortOrder] = Query(recipe_schema.SortOrder.desc, description="ソート順"),
+    db: AsyncSession = Depends(get_db)
+):
+    """レシピを検索"""
+    try:
+        print(f"Search params - tag_ids: {tag_ids}, limit: {limit}, sort_by_created_at: {sort_by_created_at}, sort_order: {sort_order}")
+        recipes = await crud_recipe.search_recipes(
+            db=db,
+            tag_ids=tag_ids,
+            limit=limit,
+            sort_by_created_at=sort_by_created_at,
+            sort_order=sort_order
+        )
+        print(f"Found {len(recipes)} recipes")
+        return recipes
+    except Exception as e:
+        print(f"Error in search_recipes: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 @router.get("/recipes/{recipe_id}", response_model=recipe_schema.RecipeDetailResponse)
 async def read_recipe(
     recipe_id: int = Path(..., description="Recipe ID"),
@@ -122,4 +144,3 @@ async def delete_cooking_record(
         raise HTTPException(status_code=404, detail="Recipe not found")
     
     return await crud_recipe.delete_cooking_record(db, cooking_record)
-

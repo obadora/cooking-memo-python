@@ -1,6 +1,11 @@
 from typing import Optional, List
 from datetime import date, datetime
 from pydantic import BaseModel, Field
+from enum import Enum
+
+class SortOrder(str, Enum):
+    asc = "asc"
+    desc = "desc"
 
 # === Pydanticモデル（Response用）の定義 ===
 
@@ -129,6 +134,12 @@ class RecipeDetailResponse(BaseModel):
 class RecipeScrapeRequest(BaseModel):
     source_url: str
     cooking_date: date
+
+class RecipeSearchRequest(BaseModel):
+    tag_ids: Optional[List[int]] = None
+    limit: Optional[int] = Field(None, ge=1, le=100)
+    sort_by_created_at: Optional[bool] = False
+    sort_order: Optional[SortOrder] = SortOrder.desc
     
 
 # TODO:以下リファクタリング対象        

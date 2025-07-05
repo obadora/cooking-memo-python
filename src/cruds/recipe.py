@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
-from src.models.recipe import Recipe, RecipePhoto, Ingredient, Step, CookingRecord
-from src.schemas.recipe import ScrapedRecipeData
-from sqlalchemy import select, extract
+from src.models.recipe import Recipe, RecipePhoto, Ingredient, Step, CookingRecord, Tag, recipe_tags_table
+from src.schemas.recipe import ScrapedRecipeData, SortOrder
+from sqlalchemy import select, extract, desc, asc, func
 from sqlalchemy.engine import Result
 from sqlalchemy.orm import selectinload
 from datetime import date
@@ -189,4 +189,60 @@ async def delete_cooking_record(db: AsyncSession, cooking_record: CookingRecord)
     except Exception as e:
         print(f"Error in crud_recipe.delete_recipe: {e}")
         await db.rollback()
+        raise e
+
+async def search_recipes(
+    db: AsyncSession,
+    tag_ids: Optional[List[int]] = None,
+    limit: Optional[int] = None,
+    sort_by_created_at: Optional[bool] = False,
+    sort_order: Optional[SortOrder] = SortOrder.desc
+) -> List[Recipe]:
+    """レシピを検索（AND条件でタグ絞り込み）"""
+    try:
+        stmt = select(Recipe).options(
+            selectinload(Recipe.source_type),
+            selectinload(Recipe.ingredients),
+            selectinload(Recipe.steps),
+            selectinload(Recipe.recipe_photos).selectinload(RecipePhoto.photo_type),
+            selectinload(Recipe.cooking_records),
+            selectinload(Recipe.categories),
+            selectinload(Recipe.tags),
+        )
+        
+        # タグIDで絞り込み（AND条件）
+        if tag_ids and len(tag_ids) > 0:
+            # 指定されたタグを全て持つレシピのIDを取得するサブクエリ
+            subquery = (
+                select(recipe_tags_table.c.recipe_id)
+                .where(recipe_tags_table.c.tag_id.in_(tag_ids))
+                .group_by(recipe_tags_table.c.recipe_id)
+                .having(func.count(recipe_tags_table.c.tag_id) == len(tag_ids))
+            )
+            
+            # メインクエリでサブクエリの結果に基づいて絞り込み
+            stmt = stmt.where(Recipe.id.in_(subquery))
+        
+        # ソート
+        if sort_by_created_at:
+            if sort_order == SortOrder.desc:
+                stmt = stmt.order_by(desc(Recipe.created_at))
+            else:
+                stmt = stmt.order_by(asc(Recipe.created_at))
+        else:
+            # デフォルトはID順
+            if sort_order == SortOrder.desc:
+                stmt = stmt.order_by(desc(Recipe.id))
+            else:
+                stmt = stmt.order_by(asc(Recipe.id))
+        
+        # 件数制限
+        if limit:
+            stmt = stmt.limit(limit)
+        
+        result: Result = await db.execute(stmt)
+        recipes = result.scalars().all()
+        return list(recipes)
+    except Exception as e:
+        print(f"Error in search_recipes: {e}")
         raise e
