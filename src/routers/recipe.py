@@ -144,3 +144,45 @@ async def delete_cooking_record(
         raise HTTPException(status_code=404, detail="Recipe not found")
     
     return await crud_recipe.delete_cooking_record(db, cooking_record)
+
+@router.post("/recipe/{recipe_id}/tag/{tag_id}", response_model=recipe_schema.RecipeDetailResponse)
+async def grant_tag_to_recipe(
+    recipe_id: int = Path(..., description="レシピID"),
+    tag_id: int = Path(..., description="付与するタグID"),
+    db: AsyncSession = Depends(get_db)
+):
+    """レシピにタグを付与（1つずつ付与）"""
+    try:
+        updated_recipe = await crud_recipe.grant_tag_to_recipe(db, recipe_id, tag_id)
+        return updated_recipe
+    except ValueError as e:
+        if "not found" in str(e):
+            raise HTTPException(status_code=404, detail=str(e))
+        elif "already has tag" in str(e):
+            raise HTTPException(status_code=409, detail=str(e))
+        else:
+            raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"Error in grant_tag_to_recipe: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@router.delete("/recipe/{recipe_id}/tag/{tag_id}", response_model=recipe_schema.RecipeDetailResponse)
+async def remove_tag_from_recipe(
+    recipe_id: int = Path(..., description="レシピID"),
+    tag_id: int = Path(..., description="削除するタグID"),
+    db: AsyncSession = Depends(get_db)
+):
+    """レシピからタグを削除"""
+    try:
+        updated_recipe = await crud_recipe.remove_tag_from_recipe(db, recipe_id, tag_id)
+        return updated_recipe
+    except ValueError as e:
+        if "not found" in str(e):
+            raise HTTPException(status_code=404, detail=str(e))
+        elif "does not have tag" in str(e):
+            raise HTTPException(status_code=404, detail=str(e))
+        else:
+            raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"Error in remove_tag_from_recipe: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

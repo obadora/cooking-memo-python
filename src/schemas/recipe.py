@@ -140,6 +140,10 @@ class RecipeSearchRequest(BaseModel):
     limit: Optional[int] = Field(None, ge=1, le=100)
     sort_by_created_at: Optional[bool] = False
     sort_order: Optional[SortOrder] = SortOrder.desc
+
+class RecipeTagGrantRequest(BaseModel):
+    recipe_id: int = Field(..., description="レシピID")
+    tag_id: int = Field(..., description="付与するタグID")
     
 
 # TODO:以下リファクタリング対象        
