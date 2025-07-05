@@ -246,3 +246,73 @@ async def search_recipes(
     except Exception as e:
         print(f"Error in search_recipes: {e}")
         raise e
+
+async def grant_tag_to_recipe(db: AsyncSession, recipe_id: int, tag_id: int) -> Optional[Recipe]:
+    """レシピにタグを付与"""
+    try:
+        # レシピとタグの存在確認
+        recipe = await get_recipe_by_id(db, recipe_id)
+        if not recipe:
+            raise ValueError(f"Recipe with id {recipe_id} not found")
+        
+        tag_result = await db.execute(select(Tag).where(Tag.id == tag_id))
+        tag = tag_result.scalar_one_or_none()
+        if not tag:
+            raise ValueError(f"Tag with id {tag_id} not found")
+        
+        # 既に関連付けられているかチェック
+        existing_stmt = select(recipe_tags_table).where(
+            recipe_tags_table.c.recipe_id == recipe_id,
+            recipe_tags_table.c.tag_id == tag_id
+        )
+        existing_result = await db.execute(existing_stmt)
+        existing = existing_result.fetchone()
+        
+        if existing:
+            raise ValueError(f"Recipe {recipe_id} already has tag {tag_id}")
+        
+        # タグを付与
+        stmt = recipe_tags_table.insert().values(recipe_id=recipe_id, tag_id=tag_id)
+        await db.execute(stmt)
+        await db.commit()
+        
+        # 更新されたレシピを返す
+        return await get_recipe_by_id(db, recipe_id)
+    except Exception as e:
+        print(f"Error in grant_tag_to_recipe: {e}")
+        await db.rollback()
+        raise e
+
+async def remove_tag_from_recipe(db: AsyncSession, recipe_id: int, tag_id: int) -> Optional[Recipe]:
+    """レシピからタグを削除"""
+    try:
+        # レシピの存在確認
+        recipe = await get_recipe_by_id(db, recipe_id)
+        if not recipe:
+            raise ValueError(f"Recipe with id {recipe_id} not found")
+        
+        # 関連付けの存在確認
+        existing_stmt = select(recipe_tags_table).where(
+            recipe_tags_table.c.recipe_id == recipe_id,
+            recipe_tags_table.c.tag_id == tag_id
+        )
+        existing_result = await db.execute(existing_stmt)
+        existing = existing_result.fetchone()
+        
+        if not existing:
+            raise ValueError(f"Recipe {recipe_id} does not have tag {tag_id}")
+        
+        # タグを削除
+        stmt = recipe_tags_table.delete().where(
+            recipe_tags_table.c.recipe_id == recipe_id,
+            recipe_tags_table.c.tag_id == tag_id
+        )
+        await db.execute(stmt)
+        await db.commit()
+        
+        # 更新されたレシピを返す
+        return await get_recipe_by_id(db, recipe_id)
+    except Exception as e:
+        print(f"Error in remove_tag_from_recipe: {e}")
+        await db.rollback()
+        raise e
