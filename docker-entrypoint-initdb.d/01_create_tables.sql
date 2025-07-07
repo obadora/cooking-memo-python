@@ -10,6 +10,7 @@ CREATE TABLE source_types (
     description TEXT,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_source_types_code (code),
     INDEX idx_source_types_active (is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='ソースタイプマスタテーブル';
@@ -23,6 +24,7 @@ CREATE TABLE photo_types (
     is_reference BOOLEAN DEFAULT FALSE COMMENT '参考写真かどうか（上部表示用）',
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_photo_types_code (code),
     INDEX idx_photo_types_reference (is_reference)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='写真タイプマスタテーブル';
@@ -33,6 +35,7 @@ CREATE TABLE categories (
     name VARCHAR(100) NOT NULL,
     color VARCHAR(7) DEFAULT '#CCCCCC' COMMENT '色コード',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_categories_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='カテゴリテーブル';
 
@@ -41,6 +44,7 @@ CREATE TABLE tags (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_tags_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='タグテーブル';
 
@@ -57,7 +61,6 @@ CREATE TABLE recipes (
     source_page INT COMMENT '本のページ番号',
     manual_identifier VARCHAR(100) COMMENT '手動設定の識別子',
     cooking_date DATE COMMENT 'カレンダーで選択した料理日',
-    cooking_memo TEXT COMMENT 'その日の料理メモ（味の感想、改良点など）',
     rating TINYINT CHECK (rating >= 1 AND rating <= 5) COMMENT '5段階評価',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -82,8 +85,7 @@ CREATE TABLE cooking_records (
     estimated_cost DECIMAL(10,2) COMMENT '推定コスト',
     occasion VARCHAR(100) COMMENT '機会・シーン',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '作成日時',
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新日時',
-    
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新日時',   
     FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
     INDEX idx_recipe_cooking_date (recipe_id, cooking_date),
     INDEX idx_cooking_date (cooking_date)
@@ -93,6 +95,7 @@ CREATE TABLE cooking_records (
 CREATE TABLE recipe_photos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     recipe_id INT NOT NULL,
+    cooking_record_id INT COMMENT '調理実施記録ID（NULLの場合はレシピ写真）',
     photo_url VARCHAR(500) NOT NULL,
     photo_type_id INT NOT NULL,
     is_primary BOOLEAN DEFAULT FALSE COMMENT 'メイン表示用の写真かどうか（参考写真のみ）',
@@ -102,7 +105,9 @@ CREATE TABLE recipe_photos (
     width INT COMMENT '画像幅',
     height INT COMMENT '画像高さ',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+    FOREIGN KEY (cooking_record_id) REFERENCES cooking_records(id) ON DELETE CASCADE,
     FOREIGN KEY (photo_type_id) REFERENCES photo_types(id),
     INDEX idx_recipe_photos_recipe_id (recipe_id),
     INDEX idx_recipe_photos_primary (recipe_id, is_primary),
@@ -120,6 +125,7 @@ CREATE TABLE ingredients (
     sort_order INT DEFAULT 0,
     notes TEXT COMMENT '材料に関する補足',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
     INDEX idx_ingredients_recipe_id (recipe_id),
     INDEX idx_ingredients_sort (recipe_id, sort_order),
@@ -136,6 +142,7 @@ CREATE TABLE steps (
     temperature INT COMMENT '温度（℃）',
     notes TEXT COMMENT '手順に関する補足',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
     INDEX idx_steps_recipe_id (recipe_id),
     UNIQUE KEY unique_recipe_step (recipe_id, step_number),
