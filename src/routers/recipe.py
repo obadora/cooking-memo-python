@@ -186,3 +186,59 @@ async def remove_tag_from_recipe(
     except Exception as e:
         print(f"Error in remove_tag_from_recipe: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@router.get("/recipe/{recipe_id}/cooking-record/{cooking_record_id}/photos", response_model=List[recipe_schema.RecipePhotoResponse])
+async def get_photos_by_cooking_record(
+    recipe_id: int = Path(..., description="レシピID"),
+    cooking_record_id: int = Path(..., description="調理記録ID"),
+    db: AsyncSession = Depends(get_db)
+):
+    """指定レシピの指定調理記録の写真を取得"""
+    try:
+        photos = await crud_recipe.get_photos_by_cooking_record(db, recipe_id, cooking_record_id)
+        return photos
+    except Exception as e:
+        print(f"Error in get_photos_by_cooking_record: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@router.delete("/recipe/{recipe_id}/photo/{photo_id}")
+async def delete_recipe_photo(
+    recipe_id: int = Path(..., description="レシピID"),
+    photo_id: int = Path(..., description="写真ID"),
+    db: AsyncSession = Depends(get_db)
+):
+    """レシピ写真を削除"""
+    try:
+        success = await crud_recipe.delete_recipe_photo(db, recipe_id, photo_id)
+        if success:
+            return {"message": "Photo deleted successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to delete photo")
+    except ValueError as e:
+        if "not found" in str(e):
+            raise HTTPException(status_code=404, detail=str(e))
+        else:
+            raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"Error in delete_recipe_photo: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@router.put("/recipe/{recipe_id}/photo/{photo_id}", response_model=recipe_schema.RecipePhotoResponse)
+async def update_recipe_photo(
+    recipe_id: int = Path(..., description="レシピID"),
+    photo_id: int = Path(..., description="写真ID"),
+    photo_data: recipe_schema.RecipePhotoUpdate = ...,
+    db: AsyncSession = Depends(get_db)
+):
+    """レシピ写真を更新"""
+    try:
+        updated_photo = await crud_recipe.update_recipe_photo(db, recipe_id, photo_id, photo_data)
+        return updated_photo
+    except ValueError as e:
+        if "not found" in str(e):
+            raise HTTPException(status_code=404, detail=str(e))
+        else:
+            raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"Error in update_recipe_photo: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
 from src.models.recipe import Recipe, RecipePhoto, Ingredient, Step, CookingRecord, Tag, recipe_tags_table
-from src.schemas.recipe import ScrapedRecipeData, SortOrder
+from src.schemas.recipe import ScrapedRecipeData, SortOrder, RecipePhotoCreate, RecipePhotoUpdate
 from sqlalchemy import select, extract, desc, asc, func
 from sqlalchemy.engine import Result
 from sqlalchemy.orm import selectinload
@@ -314,5 +314,88 @@ async def remove_tag_from_recipe(db: AsyncSession, recipe_id: int, tag_id: int) 
         return await get_recipe_by_id(db, recipe_id)
     except Exception as e:
         print(f"Error in remove_tag_from_recipe: {e}")
+        await db.rollback()
+        raise e
+
+async def get_photos_by_cooking_record(db: AsyncSession, recipe_id: int, cooking_record_id: int) -> List[RecipePhoto]:
+    """指定レシピの指定調理記録の写真を取得"""
+    try:
+        stmt = select(RecipePhoto).options(
+            selectinload(RecipePhoto.photo_type),
+            selectinload(RecipePhoto.recipe),
+            selectinload(RecipePhoto.cooking_record)
+        ).where(
+            RecipePhoto.recipe_id == recipe_id,
+            RecipePhoto.cooking_record_id == cooking_record_id
+        )
+        
+        # ソート順で並び替え
+        stmt = stmt.order_by(RecipePhoto.sort_order)
+        
+        result = await db.execute(stmt)
+        photos = result.scalars().all()
+        
+        return list(photos)
+    except Exception as e:
+        print(f"Error in get_photos_by_cooking_record: {e}")
+        raise e
+
+async def delete_recipe_photo(db: AsyncSession, recipe_id: int, photo_id: int) -> bool:
+    """レシピ写真を削除"""
+    try:
+        # 写真の存在確認
+        stmt = select(RecipePhoto).where(
+            RecipePhoto.id == photo_id,
+            RecipePhoto.recipe_id == recipe_id
+        )
+        result = await db.execute(stmt)
+        photo = result.scalar_one_or_none()
+        
+        if not photo:
+            raise ValueError(f"Photo with id {photo_id} not found for recipe {recipe_id}")
+        
+        await db.delete(photo)
+        await db.commit()
+        
+        return True
+    except Exception as e:
+        print(f"Error in delete_recipe_photo: {e}")
+        await db.rollback()
+        raise e
+
+async def update_recipe_photo(db: AsyncSession, recipe_id: int, photo_id: int, photo_data: RecipePhotoUpdate) -> RecipePhoto:
+    """レシピ写真を更新"""
+    try:
+        # 写真の存在確認
+        stmt = select(RecipePhoto).where(
+            RecipePhoto.id == photo_id,
+            RecipePhoto.recipe_id == recipe_id
+        )
+        result = await db.execute(stmt)
+        photo = result.scalar_one_or_none()
+        
+        if not photo:
+            raise ValueError(f"Photo with id {photo_id} not found for recipe {recipe_id}")
+        
+        # 更新データを適用
+        update_data = photo_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(photo, field, value)
+        
+        await db.commit()
+        await db.refresh(photo)
+        
+        # photo_typeを事前読み込みして返す
+        stmt = select(RecipePhoto).options(
+            selectinload(RecipePhoto.photo_type),
+            selectinload(RecipePhoto.cooking_record)
+        ).where(RecipePhoto.id == photo.id)
+        
+        result = await db.execute(stmt)
+        photo_with_relations = result.scalar_one()
+        
+        return photo_with_relations
+    except Exception as e:
+        print(f"Error in update_recipe_photo: {e}")
         await db.rollback()
         raise e

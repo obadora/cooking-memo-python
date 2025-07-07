@@ -26,7 +26,7 @@ class SourceType(Base):
     description = Column(Text)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=func.now())
-    
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     recipes = relationship("Recipe", back_populates="source_type")
 class PhotoType(Base):
     __tablename__ = "photo_types"
@@ -38,7 +38,7 @@ class PhotoType(Base):
     is_reference = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=func.now())
-    
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     recipe_photos = relationship("RecipePhoto", back_populates="photo_type") 
 
 class Category(Base):
@@ -48,7 +48,7 @@ class Category(Base):
     name = Column(String(100), nullable=False, index=True)
     color = Column(String(7), default="#CCCCCC")
     created_at = Column(DateTime, default=func.now())
-    
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     recipes = relationship("Recipe", secondary=recipe_categories_table, back_populates="categories")
 
 class Tag(Base):
@@ -57,7 +57,7 @@ class Tag(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50), unique=True, nullable=False, index=True)
     created_at = Column(DateTime, default=func.now())
-    
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     recipes = relationship("Recipe", secondary=recipe_tags_table, back_populates="tags")
 
 class Recipe(Base):
@@ -74,7 +74,6 @@ class Recipe(Base):
     source_page = Column(Integer)
     manual_identifier = Column(String(100))
     cooking_date = Column(Date, index=True)
-    cooking_memo = Column(Text)
     rating = Column(Integer)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
@@ -103,12 +102,14 @@ class CookingRecord(Base):
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     # リレーション
     recipe = relationship("Recipe", back_populates="cooking_records")
+    photos = relationship("RecipePhoto", back_populates="cooking_record", cascade="all, delete-orphan")
     
 class RecipePhoto(Base):
     __tablename__ = "recipe_photos"
     
     id = Column(Integer, primary_key=True, index=True)
     recipe_id = Column(Integer, ForeignKey("recipes.id"), nullable=False)
+    cooking_record_id = Column(Integer, ForeignKey("cooking_records.id"), nullable=True)
     photo_url = Column(String(500), nullable=False)
     photo_type_id = Column(Integer, ForeignKey("photo_types.id"), nullable=False)
     is_primary = Column(Boolean, default=False)
@@ -118,8 +119,10 @@ class RecipePhoto(Base):
     width = Column(Integer)
     height = Column(Integer)
     created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     
     recipe = relationship("Recipe", back_populates="recipe_photos")
+    cooking_record = relationship("CookingRecord", back_populates="photos")
     photo_type = relationship("PhotoType", back_populates="recipe_photos")
 
 class Ingredient(Base):
@@ -133,7 +136,7 @@ class Ingredient(Base):
     sort_order = Column(Integer, default=0)
     notes = Column(Text)
     created_at = Column(DateTime, default=func.now())
-    
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     recipe = relationship("Recipe", back_populates="ingredients")
 
 class Step(Base):
@@ -147,5 +150,5 @@ class Step(Base):
     temperature = Column(Integer)
     notes = Column(Text)
     created_at = Column(DateTime, default=func.now())
-    
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     recipe = relationship("Recipe", back_populates="steps")    

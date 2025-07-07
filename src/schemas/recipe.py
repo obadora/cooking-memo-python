@@ -45,13 +45,29 @@ class TagResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class RecipePhotoResponse(BaseModel):
-    id: int
-    photo_url: str
-    photo_type: PhotoTypeResponse
-    is_primary: bool
-    sort_order: int
-    alt_text: Optional[str] = None
+
+class RecipePhotoBase(BaseModel):
+    photo_url: str = Field(..., max_length=500)
+    photo_type_id: int
+    is_primary: bool = False
+    sort_order: int = 0
+    alt_text: Optional[str] = Field(None, max_length=255)
+    file_size: Optional[int] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    class Config:
+        from_attributes = True 
+
+class RecipePhotoCreate(RecipePhotoBase):
+    cooking_record_id: Optional[int] = None
+
+class RecipePhotoUpdate(BaseModel):
+    photo_url: Optional[str] = Field(None, max_length=500)
+    cooking_record_id: Optional[int] = None
+    photo_type_id: Optional[int] = None
+    is_primary: Optional[bool] = False
+    sort_order: Optional[int] = None
+    alt_text: Optional[str] = Field(None, max_length=255)
     file_size: Optional[int] = None
     width: Optional[int] = None
     height: Optional[int] = None
@@ -59,6 +75,15 @@ class RecipePhotoResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class RecipePhotoResponse(RecipePhotoBase):
+    id: int
+    recipe_id: int
+    cooking_record_id: Optional[int] = None
+    photo_type: PhotoTypeResponse
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
 class IngredientResponse(BaseModel):
     id: int
     name: str
@@ -272,29 +297,6 @@ class StepResponse(StepBase):
     class Config:
         from_attributes = True
 
-class RecipePhotoBase(BaseModel):
-    photo_url: str = Field(..., max_length=500)
-    photo_type_id: int
-    is_primary: bool = False
-    sort_order: int = 0
-    alt_text: Optional[str] = Field(None, max_length=255)
-    file_size: Optional[int] = None
-    width: Optional[int] = None
-    height: Optional[int] = None
-    class Config:
-        from_attributes = True 
-
-class RecipePhotoCreate(RecipePhotoBase):
-    pass
-
-class RecipePhotoResponse(RecipePhotoBase):
-    id: int
-    recipe_id: int
-    photo_type: PhotoTypeResponse
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
 
 class RecipeBase(BaseModel):
     title: str = Field(..., max_length=255)

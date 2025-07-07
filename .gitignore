@@ -26,6 +26,7 @@ docker-entrypoint-initdb.d/*.backup
 !docker-entrypoint-initdb.d/.gitkeep
 mysql_data/
 *.pid
+/workspace/
 
 # OS
 .DS_Store
