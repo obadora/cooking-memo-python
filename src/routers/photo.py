@@ -92,3 +92,37 @@ async def get_photo(filename: str):
         raise HTTPException(status_code=404, detail="File not found")
     
     return FileResponse(file_path)
+
+@router.delete("/photo/{photo_id}")
+async def delete_photo(
+    photo_id: int = Path(..., description="写真ID"),
+    db: AsyncSession = Depends(get_db)
+):
+    """写真を削除（DBからの削除とファイルシステムからの物理削除）"""
+    try:
+        # 写真情報を取得
+        photo = await crud_recipe.get_recipe_photo_by_id_only(db, photo_id)
+        if not photo:
+            raise HTTPException(status_code=404, detail="Photo not found")
+        
+        # ファイルパスを取得
+        filename = photo.photo_url.split("/")[-1]  # URLからファイル名を抽出
+        file_path = os.path.join(UPLOAD_DIR, filename)
+        
+        # DBから削除
+        await crud_recipe.delete_recipe_photo_by_id(db, photo_id)
+        
+        # ファイルシステムから物理削除
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        
+        return {"message": "Photo deleted successfully", "photo_id": photo_id}
+        
+    except ValueError as e:
+        if "not found" in str(e):
+            raise HTTPException(status_code=404, detail=str(e))
+        else:
+            raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"Error in delete_photo: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

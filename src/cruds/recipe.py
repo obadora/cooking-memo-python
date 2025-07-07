@@ -340,29 +340,6 @@ async def get_photos_by_cooking_record(db: AsyncSession, recipe_id: int, cooking
         print(f"Error in get_photos_by_cooking_record: {e}")
         raise e
 
-async def delete_recipe_photo(db: AsyncSession, recipe_id: int, photo_id: int) -> bool:
-    """レシピ写真を削除"""
-    try:
-        # 写真の存在確認
-        stmt = select(RecipePhoto).where(
-            RecipePhoto.id == photo_id,
-            RecipePhoto.recipe_id == recipe_id
-        )
-        result = await db.execute(stmt)
-        photo = result.scalar_one_or_none()
-        
-        if not photo:
-            raise ValueError(f"Photo with id {photo_id} not found for recipe {recipe_id}")
-        
-        await db.delete(photo)
-        await db.commit()
-        
-        return True
-    except Exception as e:
-        print(f"Error in delete_recipe_photo: {e}")
-        await db.rollback()
-        raise e
-
 async def update_recipe_photo(db: AsyncSession, recipe_id: int, photo_id: int, photo_data: RecipePhotoUpdate) -> RecipePhoto:
     """レシピ写真を更新"""
     try:
@@ -397,5 +374,36 @@ async def update_recipe_photo(db: AsyncSession, recipe_id: int, photo_id: int, p
         return photo_with_relations
     except Exception as e:
         print(f"Error in update_recipe_photo: {e}")
+        await db.rollback()
+        raise e
+
+async def get_recipe_photo_by_id_only(db: AsyncSession, photo_id: int) -> Optional[RecipePhoto]:
+    """写真IDのみで写真を取得"""
+    try:
+        stmt = select(RecipePhoto).where(RecipePhoto.id == photo_id)
+        result = await db.execute(stmt)
+        photo = result.scalar_one_or_none()
+        return photo
+    except Exception as e:
+        print(f"Error in get_recipe_photo_by_id_only: {e}")
+        raise e
+
+async def delete_recipe_photo_by_id(db: AsyncSession, photo_id: int) -> bool:
+    """写真IDのみで写真を削除"""
+    try:
+        # 写真の存在確認
+        stmt = select(RecipePhoto).where(RecipePhoto.id == photo_id)
+        result = await db.execute(stmt)
+        photo = result.scalar_one_or_none()
+        
+        if not photo:
+            raise ValueError(f"Photo with id {photo_id} not found")
+        
+        await db.delete(photo)
+        await db.commit()
+        
+        return True
+    except Exception as e:
+        print(f"Error in delete_recipe_photo_by_id: {e}")
         await db.rollback()
         raise e
