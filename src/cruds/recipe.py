@@ -54,6 +54,14 @@ async def get_cooking_record(db: AsyncSession, id: int, date: date) -> Optional[
     cooking_record = result.scalar_one_or_none()
     return cooking_record
 
+async def get_cooking_record_by_id(db: AsyncSession, cooking_record_id: int) -> Optional[CookingRecord]:
+    """調理記録IDで調理記録を取得"""
+    result = await db.execute(
+        select(CookingRecord).where(CookingRecord.id == cooking_record_id)
+    )
+    cooking_record = result.scalar_one_or_none()
+    return cooking_record
+
 async def get_recipes_by_cooking_date(db: AsyncSession, cooking_date: date) -> List[Recipe]:
     """指定した日付で調理したレシピを全て取得"""
     try:
@@ -405,5 +413,53 @@ async def delete_recipe_photo_by_id(db: AsyncSession, photo_id: int) -> bool:
         return True
     except Exception as e:
         print(f"Error in delete_recipe_photo_by_id: {e}")
+        await db.rollback()
+        raise e
+
+async def create_recipe_photo(db: AsyncSession, recipe_id: int, cooking_record_id: int, photo_data: RecipePhotoCreate) -> RecipePhoto:
+    """レシピ写真を作成"""
+    try:
+        # レシピの存在確認
+        recipe = await get_recipe_by_id(db, recipe_id)
+        if not recipe:
+            raise ValueError(f"Recipe with id {recipe_id} not found")
+        
+        # 調理記録の存在確認
+        cooking_record = await get_cooking_record_by_id(db, cooking_record_id)
+        if not cooking_record:
+            raise ValueError(f"Cooking record with id {cooking_record_id} not found")
+        
+        # 調理記録がそのレシピに属するかチェック
+        if cooking_record.recipe_id != recipe_id:
+            raise ValueError(f"Cooking record {cooking_record_id} does not belong to recipe {recipe_id}")
+        
+        # 写真を作成
+        photo = RecipePhoto(
+            recipe_id=recipe_id,
+            cooking_record_id=cooking_record_id,
+            photo_url=photo_data.photo_url,
+            photo_type_id=photo_data.photo_type_id,
+            is_primary=photo_data.is_primary,
+            sort_order=photo_data.sort_order,
+            alt_text=photo_data.alt_text,
+            file_size=photo_data.file_size
+        )
+        
+        db.add(photo)
+        await db.commit()
+        await db.refresh(photo)
+        
+        # photo_typeを事前読み込みして返す
+        stmt = select(RecipePhoto).options(
+            selectinload(RecipePhoto.photo_type),
+            selectinload(RecipePhoto.cooking_record)
+        ).where(RecipePhoto.id == photo.id)
+        
+        result = await db.execute(stmt)
+        photo_with_relations = result.scalar_one()
+        
+        return photo_with_relations
+    except Exception as e:
+        print(f"Error in create_recipe_photo: {e}")
         await db.rollback()
         raise e
