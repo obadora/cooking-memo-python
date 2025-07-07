@@ -201,28 +201,6 @@ async def get_photos_by_cooking_record(
         print(f"Error in get_photos_by_cooking_record: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@router.delete("/recipe/{recipe_id}/photo/{photo_id}")
-async def delete_recipe_photo(
-    recipe_id: int = Path(..., description="レシピID"),
-    photo_id: int = Path(..., description="写真ID"),
-    db: AsyncSession = Depends(get_db)
-):
-    """レシピ写真を削除"""
-    try:
-        success = await crud_recipe.delete_recipe_photo(db, recipe_id, photo_id)
-        if success:
-            return {"message": "Photo deleted successfully"}
-        else:
-            raise HTTPException(status_code=500, detail="Failed to delete photo")
-    except ValueError as e:
-        if "not found" in str(e):
-            raise HTTPException(status_code=404, detail=str(e))
-        else:
-            raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        print(f"Error in delete_recipe_photo: {e}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-
 @router.put("/recipe/{recipe_id}/photo/{photo_id}", response_model=recipe_schema.RecipePhotoResponse)
 async def update_recipe_photo(
     recipe_id: int = Path(..., description="レシピID"),
