@@ -160,6 +160,11 @@ class RecipeScrapeRequest(BaseModel):
     source_url: str
     cooking_date: date
 
+class RecipeBookPhotoRequest(BaseModel):
+    cooking_date: date
+    source_book_title: Optional[str] = None
+    source_page: Optional[int] = None
+
 class RecipeSearchRequest(BaseModel):
     tag_ids: Optional[List[int]] = None
     limit: Optional[int] = Field(None, ge=1, le=100)
