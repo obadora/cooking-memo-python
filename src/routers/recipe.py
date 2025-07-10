@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, Path, Depends, Query
+from fastapi import APIRouter, HTTPException, Path, Depends, Query, File, UploadFile, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 import src.schemas.recipe as recipe_schema
 from src.cruds import recipe as crud_recipe
 import src.services.scrape as services_scrape
+import src.services.ocr as services_ocr
 from src.db import get_db
 from datetime import date
 from typing import List, Optional
@@ -126,6 +127,42 @@ async def scrape_and_save_recipe(
         # スクレイピングを実行し、cooking_recordsにも登録する
         scraped_data = services_scrape.scrape_recipe(request.source_url)
         return await crud_recipe.create_from_scraped_data(db, scraped_data=scraped_data, cooking_date=request.cooking_date)
+
+@router.post("/recipe/book-photo", response_model=recipe_schema.RecipeDetailResponse)
+async def create_recipe_from_book_photo(
+    photo: UploadFile = File(..., description="書籍の写真"),
+    cooking_date: date = Form(..., description="調理日"),
+    source_book_title: str = Form(None, description="書籍タイトル"),
+    source_page: int = Form(None, description="ページ番号"),
+    db: AsyncSession = Depends(get_db)
+):
+    """書籍写真からレシピを作成"""
+    print(f"書籍写真からレシピを作成: {photo.filename}")
+    
+    try:
+        # 画像ファイルの内容を読み取り
+        image_content = await photo.read()
+        
+        # OCRでレシピ情報を抽出
+        recipe_data = services_ocr.extract_recipe_from_book_photo(image_content)
+        
+        # データベースにレシピを保存
+        new_recipe = await crud_recipe.create_from_book_photo(
+            db,
+            recipe_data=recipe_data,
+            cooking_date=cooking_date,
+            source_book_title=source_book_title,
+            source_page=source_page
+        )
+        
+        return new_recipe
+        
+    except ValueError as e:
+        print(f"OCRエラー: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"書籍写真処理エラー: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.delete("/recipe/{recipe_id}", response_model=None)
 async def delete_recipe(

@@ -165,7 +165,63 @@ async def create_from_scraped_data(
     await db.commit()
     await db.refresh(recipe)
     complete_recipe  = await get_recipe_by_id(db, recipe.id)
-    return complete_recipe 
+
+async def create_from_book_photo(
+    db: AsyncSession, 
+    *,
+    recipe_data: dict,
+    cooking_date: date,
+    source_book_title: str = None,
+    source_page: int = None
+) -> Optional[Recipe]:
+    """書籍写真から抽出したデータでレシピを作成"""
+    try:
+        # bookソースタイプを使用（source_type_id=2と仮定）
+        recipe = Recipe(
+            title=recipe_data["title"],
+            source_type_id=2,  # book source type
+            source_book_title=source_book_title,
+            source_page=source_page
+        )
+        
+        db.add(recipe)
+        await db.flush()  # IDを取得するため
+        
+        # 材料追加
+        for i, ingredient_text in enumerate(recipe_data["ingredients"]):
+            ingredient = Ingredient(
+                recipe_id=recipe.id, 
+                name=ingredient_text,
+                sort_order=i + 1
+            )
+            db.add(ingredient)
+        
+        # 手順追加
+        for i, step_text in enumerate(recipe_data["steps"]):
+            step = Step(
+                recipe_id=recipe.id, 
+                step_number=i + 1, 
+                instruction=step_text
+            )
+            db.add(step)
+        
+        # 調理記録追加
+        cooking_record = CookingRecord(
+            recipe_id=recipe.id,
+            cooking_date=cooking_date
+        )
+        db.add(cooking_record)
+        
+        await db.commit()
+        await db.refresh(recipe)
+        complete_recipe = await get_recipe_by_id(db, recipe.id)
+        return complete_recipe
+        
+    except Exception as e:
+        print(f"Error in create_from_book_photo: {e}")
+        await db.rollback()
+        raise e
+
 async def register_only_record(db: AsyncSession, recipe_id: int, cooking_date: date) -> None: 
     cooking_record = CookingRecord(
         recipe_id=recipe_id,
