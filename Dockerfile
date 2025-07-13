@@ -1,5 +1,5 @@
-# python3.11のイメージをダウンロード
-FROM python:3.11-buster
+# python3.11のイメージをダウンロード (bullseyeに変更)
+FROM python:3.11-bullseye
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /workspace
