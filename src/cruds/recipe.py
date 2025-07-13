@@ -165,7 +165,7 @@ async def create_from_scraped_data(
     await db.commit()
     await db.refresh(recipe)
     complete_recipe  = await get_recipe_by_id(db, recipe.id)
-
+    return complete_recipe
 async def create_from_book_photo(
     db: AsyncSession, 
     *,
